@@ -2,5 +2,5 @@
 
 int main()
 {
-    std::cout << "8->";
+    std::cout << "test done";
 }
