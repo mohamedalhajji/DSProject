@@ -160,3 +160,17 @@ public:
         isRehashing = false; // Sets isDeleted flag back to false
     }
 };
+
+int main() {
+
+    HashTable<string, int> MyTable(100);
+    int a;
+    MyTable.insert("Mohammed", 1);
+    a = MyTable.search(1);
+    cout << a;
+
+
+
+
+
+}
