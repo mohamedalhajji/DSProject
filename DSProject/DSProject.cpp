@@ -40,7 +40,6 @@ public:
     }
 
     void insert(const K& key, const V& value) {
-        template<typename K, typename V>
         void HashTable<K, V>::insert(const K & key, const V & value) {
             unsigned int hashIndex = getHashIndex(key);
             HashNode<K, V>* prev = nullptr;
@@ -71,7 +70,6 @@ public:
     }
 
     V search(const K& key) {
-        template<typename K, typename V>
         V HashTable<K, V>::search(const K & key) {
             unsigned int hashIndex = getHashIndex(key);
             HashNode<K, V>* entry = table[hashIndex];
@@ -90,7 +88,6 @@ public:
     }
 
     void remove(const K& key) {
-        template<typename K, typename V>
         void HashTable<K, V>::remove(const K & key) {
             unsigned int hashIndex = getHashIndex(key);
             HashNode<K, V>* entry = table[hashIndex];
@@ -122,7 +119,6 @@ public:
 
     // Destructor to clean up the table
     ~HashTable() {
-        template<typename K, typename V>
         HashTable<K, V>::~HashTable() {
             for (HashNode<K, V>* headNode : table) {
                 while (headNode != nullptr) {
