@@ -37,7 +37,6 @@ private:
     int capacity;
     int size;
 
-    // Adjusted for double hashing
     unsigned int getHashIndex(const K& key, int probe) {
         int hashIndex1 = hash1(key, capacity);
         int hashIndex2 = hash2(key, capacity);
@@ -75,12 +74,12 @@ public:
         while (probe < capacity) {
             hashIndex = getHashIndex(key, probe);
             if (table[hashIndex] == nullptr)
-                throw std::runtime_error("Key not found");
+                throw runtime_error("Key not found");
             if (!table[hashIndex]->isDeleted && table[hashIndex]->key == key)
                 return table[hashIndex]->value;
             probe++;
         }
-        throw std::runtime_error("Key not found");
+        throw runtime_error("Key not found");
     }
 
     void remove(const K& key) {
@@ -152,12 +151,12 @@ public:
         while (probe < capacity) {
             hashIndex = getHashIndex(key, probe);
             if (table[hashIndex] == nullptr)
-                throw std::runtime_error("Key not found");
+                throw runtime_error("Key not found");
             if (!table[hashIndex]->isDeleted && table[hashIndex]->key == key)
                 return table[hashIndex]->value;
             probe++;
         }
-        throw std::runtime_error("Key not found");
+        throw runtime_error("Key not found");
     }
 
     void remove(const K& key) {
