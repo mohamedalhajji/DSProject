@@ -1,6 +1,9 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <queue>
+#include <utility>
 using namespace std;
 
 // Primary hash function: Sums ASCII values of characters in the key and mods by table size
@@ -159,18 +162,84 @@ public:
         }
         isRehashing = false; // Sets isDeleted flag back to false
     }
+
+    vector<pair<K, V>> getTable() const {
+        vector<pair<K, V>> allItems;
+        for (auto* node : table) {
+            if (node != nullptr && !node->isDeleted) {
+                allItems.emplace_back(node->key, node->value);
+            }
+        }
+        return allItems;
+    }
 };
 
-int main() {
+struct Compare {
+    bool operator()(const pair<int, string>& p1, const pair<int, string>& p2) {
+        return p1.first < p2.first;
+    }
+};
 
-    HashTable<string, int> MyTable(100);
-    int a;
-    MyTable.insert("Mohammed", 1);
-    a = MyTable.search(1);
-    cout << a;
+string parseFilename(const string& logEntry) {
+    size_t startPos = logEntry.find("\"GET ") + 5;
+    size_t endPos = logEntry.find("HTTP/1.0\"", startPos);
+    if (startPos == string::npos || endPos == string::npos) {
+        throw runtime_error("Invalid log entry format");
+    }
+    return logEntry.substr(startPos, endPos - startPos);
+};
 
+int main() 
+{
+    HashTable<string, int> fileVisitsTable(50000);
+    ifstream logfile("C:\\Users\\moham\\Desktop\\access_log");
+    if (!logfile.is_open()) 
+    {
+        cerr << "Error opening file" << endl;
+        return 1;
+    }
 
+    string line;
+    while (getline(logfile, line)) 
+    {
+        try
+        {
+            string filename = parseFilename(line); // Extract filename from log entry
+            int currentCount = 0;
+            currentCount = fileVisitsTable.search(filename); // Get current visit count
+            fileVisitsTable.insert(filename, currentCount + 1); // Increment visit count
+        }
+        catch (const exception& e) 
+        {
+            cerr << "Failed to parse log line: " << e.what() << endl;
+        }
+    }
+    logfile.close();
 
+    // Define the min heap to store the top 10 visited pages
+    priority_queue<pair<int, string>, vector<pair<int, string>>, Compare> minHeap;
 
+    vector<pair<string, int>> tableEntries = fileVisitsTable.getTable();
+    for (const auto& entry : tableEntries)
+    {
+        minHeap.push(make_pair(entry.second, entry.first)); // flip pair to match Compare
+        if (minHeap.size() > 10)
+        {
+            minHeap.pop(); // Keeps only the top 10
+        }
+    }
 
+    vector<pair<int, string>> topPages;
+    while (!minHeap.empty())
+    {
+        topPages.push_back(minHeap.top());
+        minHeap.pop();
+    }
+    reverse(topPages.begin(), topPages.end()); // Because we want to show the most visited pages first
+    for (const auto& page : topPages)
+    {
+        cout << "Filename: " << page.second << ", Visits: " << page.first << endl;
+    }
+
+    return 0;
 }
