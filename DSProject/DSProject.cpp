@@ -108,13 +108,15 @@ public:
         // Continuously probe until the key is found or an empty slot is encountered
         while (probe < capacity) {
             hashIndex = getHashIndex(key, probe);
-            if (table[hashIndex] == nullptr)
-                throw runtime_error("Key not found"); // Key not in table
-            if (!table[hashIndex]->isDeleted && table[hashIndex]->key == key)
+            if (table[hashIndex] == nullptr || table[hashIndex]->isDeleted) {
+                return 0; // Key not in table or marked as deleted, return 0 as default value
+            }
+            if (table[hashIndex]->key == key) {
                 return table[hashIndex]->value; // Return found value
+            }
             probe++;
         }
-        throw runtime_error("Key not found"); // Key not found after full probe
+        return 0;
     }
 
     // Remove method: Logically deletes a key-value pair from the hash table
@@ -181,18 +183,19 @@ struct Compare {
 };
 
 string parseFilename(const string& logEntry) {
-    size_t startPos = logEntry.find("\"GET ") + 5;
-    size_t endPos = logEntry.find("HTTP/1.0\"", startPos);
+    size_t startPos = logEntry.find("GET ") + 4;
+    size_t endPos = logEntry.find(" HTTP", startPos);
     if (startPos == string::npos || endPos == string::npos) {
         throw runtime_error("Invalid log entry format");
     }
     return logEntry.substr(startPos, endPos - startPos);
 };
 
-int main() 
+int main()
 {
     HashTable<string, int> fileVisitsTable(50000);
     ifstream logfile("C:\\Users\\moham\\Desktop\\access_log");
+
     if (!logfile.is_open()) 
     {
         cerr << "Error opening file" << endl;
@@ -202,21 +205,20 @@ int main()
     string line;
     while (getline(logfile, line)) 
     {
-        try
-        {
+        try {
             string filename = parseFilename(line); // Extract filename from log entry
-            int currentCount = 0;
-            currentCount = fileVisitsTable.search(filename); // Get current visit count
+            int currentCount = fileVisitsTable.search(filename); // Get current visit count
             fileVisitsTable.insert(filename, currentCount + 1); // Increment visit count
-        }
-        catch (const exception& e) 
-        {
+        } catch (const exception& e) {
             cerr << "Failed to parse log line: " << e.what() << endl;
         }
     }
     logfile.close();
 
-    // Define the min heap to store the top 10 visited pages
+    int indexCount = fileVisitsTable.search("index.html"); // Search for "index.html"
+    cout << "'index.html' visit count (should be greater than 1): " << indexCount << endl;
+
+     //Define the min heap to store the top 10 visited pages
     priority_queue<pair<int, string>, vector<pair<int, string>>, Compare> minHeap;
 
     vector<pair<string, int>> tableEntries = fileVisitsTable.getTable();
