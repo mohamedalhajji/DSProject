@@ -4,6 +4,7 @@
 #include <fstream>
 #include <queue>
 #include <utility>
+#include <unordered_map>
 using namespace std;
 
 // Primary hash function: Sums ASCII values of characters in the key and mods by table size
@@ -41,10 +42,11 @@ template<typename K, typename V>
 class HashTable {
 private:
     vector<HashNode<K, V>*> table;  // Dynamic array for the hash table
-    int capacity;                  // Current capacity of the hash table
-    int size;                     // Number of elements in the hash table
+    size_t capacity;               // Current capacity of the hash table
+    size_t size;                  // Number of elements in the hash table
     bool isRehashing;            // Flag to check if rehashing is in progress
-    int nextPrime(int n) {
+
+    size_t nextPrime(size_t n) {
         if (n <= 1) return 2;
         if (n <= 3) return 3;
 
@@ -64,9 +66,9 @@ private:
     }
 
     // Computes the hash index for a given key and probe sequence
-    unsigned int getHashIndex(const K& key, int probe) {
-        int hashIndex1 = hash1(key, capacity);
-        int hashIndex2 = hash2(key, capacity);
+    unsigned int getHashIndex(const K& key, size_t probe) const {
+        size_t hashIndex1 = hash1(key, capacity);
+        size_t hashIndex2 = hash2(key, capacity);
         return (hashIndex1 + probe * hashIndex2) % capacity;
     }
 
@@ -101,22 +103,17 @@ public:
         } while (probe < capacity);
     }
 
-    // Search method: Finds and returns the value associated with a given key
+    // Search method: Finds and returns a pointer to the value associated with a given key
     V search(const K& key) {
-        int probe = 0; // Probing counter
-        int hashIndex;
-        // Continuously probe until the key is found or an empty slot is encountered
+        size_t probe = 0;
         while (probe < capacity) {
-            hashIndex = getHashIndex(key, probe);
-            if (table[hashIndex] == nullptr || table[hashIndex]->isDeleted) {
-                return 0; // Key not in table or marked as deleted, return 0 as default value
+            size_t hashIndex = getHashIndex(key, probe);
+            if (table[hashIndex] != nullptr && !table[hashIndex]->isDeleted) {
+                return table[hashIndex]->value; // Found the value
             }
-            if (table[hashIndex]->key == key) {
-                return table[hashIndex]->value; // Return found value
-            }
-            probe++;
+            ++probe;
         }
-        return 0;
+        return V(); // Return the default value for V
     }
 
     // Remove method: Logically deletes a key-value pair from the hash table
@@ -173,28 +170,26 @@ public:
             }
         }
         return allItems;
-    }
+    };
 };
 
 struct Compare {
     bool operator()(const pair<int, string>& p1, const pair<int, string>& p2) {
-        return p1.first < p2.first;
+            return p1.first < p2.first;
     }
 };
 
 string parseFilename(const string& logEntry) {
     size_t startPos = logEntry.find("GET ") + 4;
     size_t endPos = logEntry.find(" HTTP", startPos);
-    if (startPos == string::npos || endPos == string::npos) {
-        throw runtime_error("Invalid log entry format");
-    }
-    return logEntry.substr(startPos, endPos - startPos);
-};
+    return (startPos != string::npos && endPos != string::npos) ?
+        logEntry.substr(startPos, endPos - startPos) : "";
+}
 
 int main()
 {
-    HashTable<string, int> fileVisitsTable(50000);
-    ifstream logfile("C:\\Users\\moham\\Desktop\\access_log");
+    unordered_map<string, int> fileVisitsTable;
+    ifstream logfile("D:\\Downloads\\project\\access_log.txt");
 
     if (!logfile.is_open()) 
     {
@@ -203,43 +198,44 @@ int main()
     }
 
     string line;
-    while (getline(logfile, line)) 
-    {
-        try {
-            string filename = parseFilename(line); // Extract filename from log entry
-            int currentCount = fileVisitsTable.search(filename); // Get current visit count
-            fileVisitsTable.insert(filename, currentCount + 1); // Increment visit count
-        } catch (const exception& e) {
-            cerr << "Failed to parse log line: " << e.what() << endl;
+    while (getline(logfile, line)) {
+        string filename = parseFilename(line); // Extract filename from log entry
+        if (!filename.empty()) {
+            fileVisitsTable[filename]++;
         }
     }
     logfile.close();
 
-    int indexCount = fileVisitsTable.search("index.html"); // Search for "index.html"
-    cout << "'index.html' visit count (should be greater than 1): " << indexCount << endl;
+    // Check for 'index.html' in the map
+    auto it = fileVisitsTable.find("index.html");
+    if (it != fileVisitsTable.end()) {
+        cout << "'index.html' visit count: " << it->second << endl;
+    }
+    else {
+        cout << "'index.html' was not found in the hash table." << endl;
+    }
 
-     //Define the min heap to store the top 10 visited pages
-    priority_queue<pair<int, string>, vector<pair<int, string>>, Compare> minHeap;
+    // Define the min heap to store the top 10 visited pages
+    auto comp = [](const pair<int, string>& p1, const pair<int, string>& p2) {
+        return p1.first > p2.first;
+        };
+    priority_queue<pair<int, string>, vector<pair<int, string>>, decltype(comp)> minHeap(comp);
 
-    vector<pair<string, int>> tableEntries = fileVisitsTable.getTable();
-    for (const auto& entry : tableEntries)
-    {
-        minHeap.push(make_pair(entry.second, entry.first)); // flip pair to match Compare
-        if (minHeap.size() > 10)
-        {
-            minHeap.pop(); // Keeps only the top 10
+    for (const auto& entry : fileVisitsTable) {
+        minHeap.push(make_pair(entry.second, entry.first));
+        if (minHeap.size() > 10) {
+            minHeap.pop();
         }
     }
 
     vector<pair<int, string>> topPages;
-    while (!minHeap.empty())
-    {
+    while (!minHeap.empty()) {
         topPages.push_back(minHeap.top());
         minHeap.pop();
     }
-    reverse(topPages.begin(), topPages.end()); // Because we want to show the most visited pages first
-    for (const auto& page : topPages)
-    {
+    reverse(topPages.begin(), topPages.end());
+
+    for (const auto& page : topPages) {
         cout << "Filename: " << page.second << ", Visits: " << page.first << endl;
     }
 
