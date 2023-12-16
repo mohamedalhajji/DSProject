@@ -147,7 +147,7 @@ public:
 };
 
 // function to extract the file name from the log entry
-string analyzeFilename(const string& logEntry) {
+static string analyzeFilename(const string& logEntry) {
     regex pattern(R"(GET\s+(\d+\.gif|\d+\.html)\s+HTTP)"); // regex pattern for files
     smatch matches;                                       // stores matches
 
@@ -246,8 +246,9 @@ int main() {
     // calculate and print the elapsed times for both hash tables
     auto customTime = chrono::duration_cast<chrono::seconds>(endCustom - startCustom);
     auto UoMTime = chrono::duration_cast<chrono::seconds>(endUoM - startUoM);
+    auto totalTime = customTime + UoMTime;
 
-    cout << endl << "Total time elapsed:" << endl;
+    cout << endl << "Total time elapsed: " << totalTime.count() << " seconds" << endl;
     cout << endl << "Custom hash table time: " << customTime.count() << " seconds" << endl;
     cout << "Unordered_map time: " << UoMTime.count() << " seconds" << endl;
     
