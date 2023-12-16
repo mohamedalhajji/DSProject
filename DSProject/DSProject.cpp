@@ -31,8 +31,8 @@ private:
     hash<K> hash1;           // primary hash function
 
     // secondary hash function
-    unsigned int hash2(const K& key) const {
-        return ((hash1(key) * 2) + 1) % capacity;
+    size_t hash2(const K& key) const {
+        return ((hash1(key) * 2) + 1)   % capacity;
     }
 
 public:
