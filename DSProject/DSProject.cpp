@@ -8,7 +8,7 @@
 #include <functional>  // hash funtion
 #include <chrono>     // measuring time
 using namespace std;
-
+// MAKE SURE ITS RUNNING ON RELEASE MODE FOR A DRASTIC TIME DECREASE
 
 // tempelate for each entry in custom hash table
 template<typename K, typename V>
