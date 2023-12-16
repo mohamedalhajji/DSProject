@@ -171,7 +171,7 @@ int main() {
     ifstream file("D:\\Downloads\\project\\access_log.txt");
     // error message if unsuccessful opening
     if (!file.is_open()) {
-        cerr << "Error opening file" << endl;
+        cerr << "Please insert the correct file destination" << endl;
         return 1;
     }
 
@@ -238,9 +238,9 @@ int main() {
         });
 
     // print top 10 visited web pages
-    cout << "top 10 visited web pages:" << endl << endl;
+    cout << "The top 10 visited web pages are:" << endl << endl;
     for (int i = 0; i < topWeb.size() && i < 10; ++i) {
-        cout << topWeb[i].second << " : " << topWeb[i].first << " visits" << endl;
+        cout << topWeb[i].second << " : " << topWeb[i].first << " visits!!" << endl;
     }
 
     // calculate and print the elapsed times for both hash tables
