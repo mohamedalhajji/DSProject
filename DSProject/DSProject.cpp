@@ -173,10 +173,10 @@ static string analyzeFilename(const string& logEntry) {
 // using both custom hash table and unordered map (standard library) to compare
 int main() {
     // custom hash table
-    HT<string, int> customHT(1000000, 0.7); // predifined capacity
+    HT<string, int> customHT(1000000); // predifined capacity
 
     // unordered map hash table
-    unordered_map<string, int> UoMTable;
+    unordered_map<string, int> UoMTable(1000000); // predifined capacity
 
     // opening file
     ifstream file("D:\\Downloads\\project\\access_log.txt");
@@ -207,53 +207,53 @@ int main() {
     file.close(); //closes file
 
     // minheap
-    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minHeap;
+    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minheapCustom;
 
     // populate min heap with visit counts for custom table
-    for (const auto& entry : customHT.getValues()) {
-        if (minHeap.size() < 10) { // make sure we only keep the top 10
-            minHeap.push(make_pair(entry.second, entry.first));
+    for (const auto& count : customHT.getValues()) {
+        if (minheapCustom.size() < 10) { // make sure we only keep the top 10
+            minheapCustom.push(make_pair(count.second, count.first));
         }
-        else if (entry.second > minHeap.top().first) {
-            minHeap.pop();
-            minHeap.push(make_pair(entry.second, entry.first));
+        else if (count.second > minheapCustom.top().first) {
+            minheapCustom.pop();
+            minheapCustom.push(make_pair(count.second, count.first));
         }
     }
 
     // extract top web pages from heap and store them in custom table
-    vector<pair<int, string>> topWeb;
-    while (!minHeap.empty()) {
-        topWeb.push_back(minHeap.top());
-        minHeap.pop();
+    vector<pair<int, string>> topWebCustom;
+    while (!minheapCustom.empty()) {
+        topWebCustom.push_back(minheapCustom.top());
+        minheapCustom.pop();
     }
-    reverse(topWeb.begin(), topWeb.end()); // reverse to get descending order
+    reverse(topWebCustom.begin(), topWebCustom.end()); // reverse to get descending order
 
     // Min heap to store top 10 visited pages for UoMTable
-    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minHeapUoM;
+    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minheapUoM;
 
     // populate min heap with visit counts for UoM table
-    for (const auto& entry : UoMTable) {
-        if (minHeapUoM.size() < 10) {
-            minHeapUoM.push(make_pair(entry.second, entry.first));
+    for (const auto& count : UoMTable) {
+        if (minheapUoM.size() < 10) {
+            minheapUoM.push(make_pair(count.second, count.first));
         }
-        else if (entry.second > minHeapUoM.top().first) {
-            minHeapUoM.pop();
-            minHeapUoM.push(make_pair(entry.second, entry.first));
+        else if (count.second > minheapUoM.top().first) {
+            minheapUoM.pop();
+            minheapUoM.push(make_pair(count.second, count.first));
         }
     }
 
     // extract top web pages from heap and store them in UoM table
     vector<pair<int, string>> topWebUoM;
-    while (!minHeapUoM.empty()) {
-        topWebUoM.push_back(minHeapUoM.top());
-        minHeapUoM.pop();
+    while (!minheapUoM.empty()) {
+        topWebUoM.push_back(minheapUoM.top());
+        minheapUoM.pop();
     }
     reverse(topWebUoM.begin(), topWebUoM.end()); // reverse to get descending order
 
     // print top 10 visited web pages
-    cout << "The top 10 visited web pages are:" << endl << endl;
-    for (int i = 0; i < topWeb.size() && i < 10; ++i) {
-        cout << topWeb[i].second << " : " << topWeb[i].first << " visits!" << endl;
+    cout << "The top 10 visited web pages are:" << endl << endl;    
+    for (const auto& page : topWebCustom) {
+        cout << page.second << " : " << page.first << " visits!" << endl;
     }
 
     // calculate and print the elapsed times for both tables
