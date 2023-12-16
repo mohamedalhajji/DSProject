@@ -29,6 +29,7 @@ private:
     size_t capacity;           // max capacity for HT
     size_t size;              // current size for HT
     hash<K> hash1;           // primary hash function
+    double thresh = 0.7;    // threshold for reashing
 
     // secondary hash function
     size_t hash2(const K& key) const {
@@ -40,12 +41,13 @@ public:
     HT(size_t initialCapacity) : capacity(initialCapacity), size(0) {
         table.resize(capacity, nullptr);
     }
+
     // insert class member
     void insert(const K& key, const V& value) {
         size_t index1 = hash1(key) % capacity;
         size_t index2 = hash2(key);
         size_t i = 0;
-
+        
         while (table[(index1 + i * index2) % capacity] != nullptr &&
             !table[(index1 + i * index2) % capacity]->isDeleted &&
             table[(index1 + i * index2) % capacity]->key != key) {
@@ -58,6 +60,11 @@ public:
 
         table[(index1 + i * index2) % capacity] = new hashN<K, V>(key, value);
         size++;
+
+        // rehashes if table is 70% full
+        if ((static_cast<double>(1.0) * size) / capacity > thresh) {
+            rehash();
+        }
     }
 
     // search class member
@@ -110,7 +117,6 @@ public:
         return number;
     }
 
-public:
     // destructor to clean up memory
     ~HT() {
         for (auto& node : table) {
@@ -144,6 +150,11 @@ public:
         }
         return values;
     }
+
+    HT(size_t iCapacity, double iThresh)
+        :capacity(iCapacity), size(0), thresh(iThresh) {
+        table.resize(capacity, nullptr);
+    }
 };
 
 // function to extract the file name from the log entry
@@ -162,7 +173,7 @@ static string analyzeFilename(const string& logEntry) {
 // using both custom hash table and unordered map (standard library) to compare
 int main() {
     // custom hash table
-    HT<string, int> customHT(50000); // predifined capacity
+    HT<string, int> customHT(1000000, 0.7); // predifined capacity
 
     // unordered map hash table
     unordered_map<string, int> UoMTable;
@@ -176,74 +187,76 @@ int main() {
     }
 
     string site;
-    // start timing for custom hash table
+    // start timing for both hash tables
     auto startCustom = chrono::high_resolution_clock::now();
-    while (getline(file, site)) {
-        string filename = analyzeFilename(site);
-        if (!filename.empty()) {
-            // Operations on custom hash table
-            int current = customHT.search(filename); // return 0 if not found
-            customHT.insert(filename, current + 1); // handle incrementing the count
-        }
-    }
-    auto endCustom = chrono::high_resolution_clock::now();
-    file.clear();             // clears end of file and any error flags.
-    file.seekg(0, ios::beg); // rewinds file to the beginning for the next read.
-
-
-    // start timing for UoM table
     auto startUoM = chrono::high_resolution_clock::now();
+
     while (getline(file, site)) {
         string filename = analyzeFilename(site);
         if (!filename.empty()) {
-            UoMTable[filename]++; // increment on UoM table
+            // operations on both tables
+            customHT.insert(filename, customHT.search(filename) + 1);
+            UoMTable[filename]++;
         }
     }
+
+    // end timing for both tables
     auto endUoM = chrono::high_resolution_clock::now();
+    auto endCustom = endUoM;
 
     file.close(); //closes file
 
-
-    // min heap to store the topWeb 10 visited pages
+    // minheap
     priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minHeap;
 
-    unordered_map<string, int> visitsCount;
-
-    //populate min heap with visit counts for custom table
+    // populate min heap with visit counts for custom table
     for (const auto& entry : customHT.getValues()) {
-        minHeap.push(make_pair(entry.second, entry.first));
-        if (minHeap.size() > 10) { // make sure it only stores topWeb 10 visits
+        if (minHeap.size() < 10) { // make sure we only keep the top 10
+            minHeap.push(make_pair(entry.second, entry.first));
+        }
+        else if (entry.second > minHeap.top().first) {
             minHeap.pop();
+            minHeap.push(make_pair(entry.second, entry.first));
         }
     }
 
-    // populate min heap with visit counts for UoM table
-    for (const auto& entry : visitsCount) {
-        minHeap.push(make_pair(entry.second, entry.first));
-        if (minHeap.size() > 10) {
-            minHeap.pop();
-        }
-    }
-
-    // extract top web pages from heap and store them
+    // extract top web pages from heap and store them in custom table
     vector<pair<int, string>> topWeb;
     while (!minHeap.empty()) {
         topWeb.push_back(minHeap.top());
         minHeap.pop();
     }
+    reverse(topWeb.begin(), topWeb.end()); // reverse to get descending order
 
-    // sort in descending order of visit count
-    sort(topWeb.begin(), topWeb.end(), [](const pair<int, string>& a, const pair<int, string>& b) {
-        return a.first > b.first;
-        });
+    // Min heap to store top 10 visited pages for UoMTable
+    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minHeapUoM;
+
+    // populate min heap with visit counts for UoM table
+    for (const auto& entry : UoMTable) {
+        if (minHeapUoM.size() < 10) {
+            minHeapUoM.push(make_pair(entry.second, entry.first));
+        }
+        else if (entry.second > minHeapUoM.top().first) {
+            minHeapUoM.pop();
+            minHeapUoM.push(make_pair(entry.second, entry.first));
+        }
+    }
+
+    // extract top web pages from heap and store them in UoM table
+    vector<pair<int, string>> topWebUoM;
+    while (!minHeapUoM.empty()) {
+        topWebUoM.push_back(minHeapUoM.top());
+        minHeapUoM.pop();
+    }
+    reverse(topWebUoM.begin(), topWebUoM.end()); // reverse to get descending order
 
     // print top 10 visited web pages
     cout << "The top 10 visited web pages are:" << endl << endl;
     for (int i = 0; i < topWeb.size() && i < 10; ++i) {
-        cout << topWeb[i].second << " : " << topWeb[i].first << " visits!!" << endl;
+        cout << topWeb[i].second << " : " << topWeb[i].first << " visits!" << endl;
     }
 
-    // calculate and print the elapsed times for both hash tables
+    // calculate and print the elapsed times for both tables
     auto customTime = chrono::duration_cast<chrono::seconds>(endCustom - startCustom);
     auto UoMTime = chrono::duration_cast<chrono::seconds>(endUoM - startUoM);
     auto totalTime = customTime + UoMTime;
@@ -251,6 +264,6 @@ int main() {
     cout << endl << "Total time elapsed: " << totalTime.count() << " seconds" << endl;
     cout << endl << "Custom hash table time: " << customTime.count() << " seconds" << endl;
     cout << "Unordered_map time: " << UoMTime.count() << " seconds" << endl;
-    
+
     return 0;
 }
