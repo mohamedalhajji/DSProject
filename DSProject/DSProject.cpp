@@ -28,8 +28,24 @@ private:
     vector<hashN<K, V>*> table; // storage for hash table
     size_t capacity;           // max capacity for HT
     size_t size;              // current size for HT
-    hash<K> hash1;           // primary hash function
     double thresh = 0.7;    // threshold for reashing
+
+    // primary hash function
+    size_t hash1(const K& key) const {
+        return cHash1(key) % capacity;
+    }
+
+    // hash1 function implementation
+    size_t cHash1(const K& key) const {
+        size_t hash1V = 0;
+        size_t prime = 31;
+
+        for (char a : key) {
+            hash1V = hash1V * prime + a;
+        }
+
+        return hash1V;
+    }
 
     // secondary hash function
     size_t hash2(const K& key) const {
@@ -253,7 +269,7 @@ int main() {
     // print top 10 visited web pages
     cout << "The top 10 visited web pages are:" << endl << endl;    
     for (const auto& page : topWebCustom) {
-        cout << page.second << " : " << page.first << " visits!" << endl;
+        cout << page.second << " : " << page.first << " visits" << endl;
     }
 
     // calculate and print the elapsed times for both tables
