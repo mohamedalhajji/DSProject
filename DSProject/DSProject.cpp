@@ -8,7 +8,7 @@
 #include <functional>  // hash funtion
 #include <chrono>     // measuring time
 using namespace std;
-// MAKE SURE ITS RUNNING ON RELEASE MODE FOR A DRASTIC TIME DECREASE
+// PLEASE MAKE SURE ITS RUNNING ON RELEASE MODE FOR A DRASTIC TIME DECREASE
 
 // tempelate for each entry in custom hash table
 template<typename K, typename V>
@@ -25,10 +25,10 @@ public:
 template<typename K, typename V>
 class HT {
 private:
-    vector<hashN<K, V>*> table; // storage for hash table
-    size_t capacity;           // max capacity for HT
-    size_t size;              // current size for HT
-    double thresh = 0.7;    // threshold for reashing
+    vector<hashN<K, V>*> table;  // storage for hash table
+    size_t capacity;            // max capacity for HT
+    size_t size;               // current size for HT
+    double thresh = 0.7;      // threshold for reashing
 
     // primary hash function
     size_t hash1(const K& key) const {
@@ -198,27 +198,35 @@ int main() {
     ifstream file("D:\\Downloads\\project\\access_log.txt");
     // error message if unsuccessful opening
     if (!file.is_open()) {
-        cerr << "Please insert the correct file destination" << endl;
+        cerr << "Error opening file" << endl;
         return 1;
     }
 
     string site;
     // start timing for both hash tables
     auto startCustom = chrono::high_resolution_clock::now();
-    auto startUoM = chrono::high_resolution_clock::now();
-
     while (getline(file, site)) {
         string filename = analyzeFilename(site);
         if (!filename.empty()) {
-            // operations on both tables
             customHT.insert(filename, customHT.search(filename) + 1);
+        }
+    }
+    // end timing for custom table
+    auto endCustom = chrono::high_resolution_clock::now();
+    
+    // reopen file for unordered map
+    file.clear(); // clear end of file flags
+    file.seekg(0, ios::beg); // seek from the beggining
+
+    // start timing for unordered map
+    auto startUoM = chrono::high_resolution_clock::now();
+    while (getline(file, site)) {
+        string filename = analyzeFilename(site);
+        if (!filename.empty()) {
             UoMTable[filename]++;
         }
     }
-
-    // end timing for both tables
     auto endUoM = chrono::high_resolution_clock::now();
-    auto endCustom = endUoM;
 
     file.close(); //closes file
 
@@ -235,7 +243,7 @@ int main() {
             minheapCustom.push(make_pair(count.second, count.first));
         }
     }
-
+    
     // extract top web pages from heap and store them in custom table
     vector<pair<int, string>> topWebCustom;
     while (!minheapCustom.empty()) {
@@ -273,13 +281,13 @@ int main() {
     }
 
     // calculate and print the elapsed times for both tables
-    auto customTime = chrono::duration_cast<chrono::seconds>(endCustom - startCustom);
-    auto UoMTime = chrono::duration_cast<chrono::seconds>(endUoM - startUoM);
+    auto customTime = round(chrono::duration<double>(endCustom - startCustom).count()*10)/10;
+    auto UoMTime = round(chrono::duration<double>(endUoM - startUoM).count()*10)/10;
     auto totalTime = customTime + UoMTime;
 
-    cout << endl << "Total time elapsed: " << totalTime.count() << " seconds" << endl;
-    cout << endl << "Custom hash table time: " << customTime.count() << " seconds" << endl;
-    cout << "Unordered_map time: " << UoMTime.count() << " seconds" << endl;
-
+    cout << endl << "Total time elapsed: " << totalTime<< " seconds" << endl;
+    cout << endl << "Custom hash table time: " << customTime<< " seconds" << endl;
+    cout << "Unordered_map time: " << UoMTime<< " seconds" << endl;
+    
     return 0;
 }
