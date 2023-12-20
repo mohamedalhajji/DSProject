@@ -5,46 +5,40 @@
 #include <vector>         // vector container
 #include <string>        // string operations
 #include <regex>        // regular expression
-#include <functional>  // hash funtion
-#include <chrono>     // measuring time
+#include <chrono>      // measuring time
 using namespace std;
 // PLEASE MAKE SURE ITS RUNNING ON RELEASE MODE FOR A DRASTIC TIME DECREASE
 
 // tempelate for each entry in custom hash table
 template<typename K, typename V>
-class hashN {
+class hashNode {
 public:
     K key;            // key of hash node
     V value;         // value of hash node
     bool isDeleted; // deletion flag
 
     // initializes key, value, and deletion flag
-    hashN(const K& key, const V& value) : key(key), value(value), isDeleted(false) {}
+    hashNode(const K& key, const V& value) : key(key), value(value), isDeleted(false) {}
 };
 
 template<typename K, typename V>
 class HT {
 private:
-    vector<hashN<K, V>*> table;  // storage for hash table
-    size_t capacity;            // max capacity for HT
-    size_t size;               // current size for HT
-    double thresh = 0.7;      // threshold for reashing
+    vector<hashNode<K, V>*> table;  // storage for hash table
+    size_t capacity;               // max capacity for HT
+    size_t size;                  // current size for HT
+    double thresh = 0.7;         // threshold for reashing
 
     // primary hash function
     size_t hash1(const K& key) const {
-        return cHash1(key) % capacity;
-    }
-
-    // hash1 function implementation
-    size_t cHash1(const K& key) const {
-        size_t hash1V = 0;
+        size_t hashValue = 0;
         size_t prime = 31;
 
         for (char a : key) {
-            hash1V = hash1V * prime + a;
+            hashValue = hashValue * prime + a;
         }
 
-        return hash1V;
+        return hashValue % capacity;
     }
 
     // secondary hash function
@@ -60,22 +54,24 @@ public:
 
     // insert class member
     void insert(const K& key, const V& value) {
-        size_t index1 = hash1(key) % capacity;
+        size_t index1 = hash1(key);
         size_t index2 = hash2(key);
         size_t i = 0;
+        size_t indexA = (index1 + i * index2) % capacity;
         
-        while (table[(index1 + i * index2) % capacity] != nullptr &&
-            !table[(index1 + i * index2) % capacity]->isDeleted &&
-            table[(index1 + i * index2) % capacity]->key != key) {
-            i++;
+        while (table[indexA] != nullptr &&
+              !table[indexA]->isDeleted &&
+              table[indexA]->key != key) {
+              i++;
         }
 
-        if (table[(index1 + i * index2) % capacity] != nullptr) {
-            delete table[(index1 + i * index2) % capacity];
+        if (table[indexA] == nullptr) {
+            table[indexA] = new hashNode<K, V>(key,value);
+            size++;
         }
-
-        table[(index1 + i * index2) % capacity] = new hashN<K, V>(key, value);
-        size++;
+        else {
+            table[indexA]->value = value;
+        }
 
         // rehashes if table is 70% full
         if ((static_cast<double>(1.0) * size) / capacity > thresh) {
@@ -85,13 +81,14 @@ public:
 
     // search class member
     V search(const K& key) const {
-        size_t index1 = hash1(key) % capacity;
+        size_t index1 = hash1(key);
         size_t index2 = hash2(key);
         size_t i = 0;
+        size_t indexA = (index1 + i * index2) % capacity;
 
-        while (table[(index1 + i * index2) % capacity] != nullptr) {
-            if (table[(index1 + i * index2) % capacity]->key == key && !table[(index1 + i * index2) % capacity]->isDeleted) {
-                return table[(index1 + i * index2) % capacity]->value;
+        while (table[indexA] != nullptr) {
+            if (table[indexA]->key == key && !table[indexA]->isDeleted) {
+               return table[indexA]->value;
             }
             i++;
         }
@@ -101,13 +98,14 @@ public:
 
     // delete class member
     void remove(const K& key) {
-        size_t index1 = hash1(key) % capacity;
+        size_t index1 = hash1(key);
         size_t index2 = hash2(key);
         size_t i = 0;
+        size_t indexA = (index1 + i * index2) % capacity;
 
-        while (table[(index1 + i * index2) % capacity] != nullptr) {
-            if (table[(index1 + i * index2) % capacity]->key == key && !table[(index1 + i * index2) % capacity]->isDeleted) {
-                table[(index1 + i * index2) % capacity]->isDeleted = true;
+        while (table[indexA] != nullptr) {
+            if (table[indexA]->key == key && !table[indexA]->isDeleted) {
+                table[indexA]->isDeleted = true;
                 size--;
                 return;
             }
@@ -143,7 +141,7 @@ public:
 
     // function to rehash table when load factor is too high
     void rehash() {
-        vector<hashN<K, V>*> oldTable = table;
+        vector<hashNode<K, V>*> oldTable = table;
         capacity = NextPrime(capacity * 2);
         table.clear();
         table.resize(capacity, nullptr);
@@ -157,6 +155,7 @@ public:
         }
     }
 
+    // stores key-value pairs from the table as vector of pairs
     vector<pair<K, V>> getValues() const {
         vector<pair<K, V>> values;
         for (auto& entry : table) {
@@ -167,6 +166,7 @@ public:
         return values;
     }
 
+    // constructor for the table with specific initial capacity and load factor threshold
     HT(size_t iCapacity, double iThresh)
         :capacity(iCapacity), size(0), thresh(iThresh) {
         table.resize(capacity, nullptr);
@@ -203,7 +203,7 @@ int main() {
     }
 
     string site;
-    // start timing for both hash tables
+    // timing for custom hash table
     auto startCustom = chrono::high_resolution_clock::now();
     while (getline(file, site)) {
         string filename = analyzeFilename(site);
@@ -211,14 +211,13 @@ int main() {
             customHT.insert(filename, customHT.search(filename) + 1);
         }
     }
-    // end timing for custom table
     auto endCustom = chrono::high_resolution_clock::now();
     
     // reopen file for unordered map
     file.clear(); // clear end of file flags
     file.seekg(0, ios::beg); // seek from the beggining
 
-    // start timing for unordered map
+    // timing for unordered map
     auto startUoM = chrono::high_resolution_clock::now();
     while (getline(file, site)) {
         string filename = analyzeFilename(site);
@@ -230,7 +229,7 @@ int main() {
 
     file.close(); //closes file
 
-    // minheap
+    // minheap for custom table
     priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minheapCustom;
 
     // populate min heap with visit counts for custom table
@@ -252,7 +251,7 @@ int main() {
     }
     reverse(topWebCustom.begin(), topWebCustom.end()); // reverse to get descending order
 
-    // Min heap to store top 10 visited pages for UoMTable
+    // minheap for unorederd map
     priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> minheapUoM;
 
     // populate min heap with visit counts for UoM table
@@ -276,8 +275,8 @@ int main() {
 
     // print top 10 visited web pages
     cout << "The top 10 visited web pages are:" << endl << endl;    
-    for (const auto& page : topWebCustom) {
-        cout << page.second << " : " << page.first << " visits" << endl;
+    for (const auto& topWeb : topWebCustom) {
+        cout << topWeb.second << " : " << topWeb.first << " visits" << endl;
     }
 
     // calculate and print the elapsed times for both tables
