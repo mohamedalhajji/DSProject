@@ -203,7 +203,7 @@ int main() {
     }
 
     string site;
-    // timing for custom hash table
+    // timing and operations for custom hash table
     auto startCustom = chrono::high_resolution_clock::now();
     while (getline(file, site)) {
         string filename = analyzeFilename(site);
@@ -217,7 +217,7 @@ int main() {
     file.clear(); // clear end of file flags
     file.seekg(0, ios::beg); // seek from the beggining
 
-    // timing for unordered map
+    // timing and operations for unordered map
     auto startUoM = chrono::high_resolution_clock::now();
     while (getline(file, site)) {
         string filename = analyzeFilename(site);
